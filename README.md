@@ -105,41 +105,88 @@ Spring MVC `HandlerInterceptor`로 구현하고 `WebConfig`에서 `/api/**`에 �
 
 ## 5. 테스트
 
+서버 실행 후 별도 터미널에서 아래 순서대로 실행했습니다. (`B=localhost:8080/api/v1/items`)
+
+| # | 분류 | 요청 | 기대 코드 | 캡처 |
+|---|---|---|---|---|
+| 01 | POST | 아이템 생성 | 201 | [01-post-create-201.png](docs/screenshots/01-post-create-201.png) |
+| 02 | POST | 헤더 포함 요청 | 200 | [02-post-with-header-200.png](docs/screenshots/02-post-with-header-200.png) |
+| 03 | GET | 전체 조회 | 200 | [03-get-list-200.png](docs/screenshots/03-get-list-200.png) |
+| 04 | GET | 단건 조회 | 200 | [04-get-one-200.png](docs/screenshots/04-get-one-200.png) |
+| 05 | GET | 검색 | 200 | [05-get-search-200.png](docs/screenshots/05-get-search-200.png) |
+| 06 | PUT | 이름 수정 | 200 | [06-put-update-200.png](docs/screenshots/06-put-update-200.png) |
+| 07 | PUT | 가격 수정 | 200 | [07-put-price-200.png](docs/screenshots/07-put-price-200.png) |
+| 08 | 4xx | 입력 검증 실패 | 400 | [08-post-invalid-400.png](docs/screenshots/08-post-invalid-400.png) |
+| 09 | 4xx | id 형식 오류 | 400 | [09-get-type-mismatch-400.png](docs/screenshots/09-get-type-mismatch-400.png) |
+| 10 | 4xx | 없는 id | 404 | [10-get-not-found-404.png](docs/screenshots/10-get-not-found-404.png) |
+| 11 | 5xx | 처리되지 않은 예외 | 500 | [11-search-error-500.png](docs/screenshots/11-search-error-500.png) |
+| 12 | DELETE | 단건 삭제 | 200 | [12-delete-one-200.png](docs/screenshots/12-delete-one-200.png) |
+| 13 | DELETE | 전체 삭제 | 200 | [13-delete-all-200.png](docs/screenshots/13-delete-all-200.png) |
+| 14 | 5xx | 점검 모드 | 503 | [14-maintenance-503.png](docs/screenshots/14-maintenance-503.png) |
+| 15 | 미들웨어 | 서버 콘솔 요청 로그 | - | [15-interceptor-log.png](docs/screenshots/15-interceptor-log.png) |
+
 ```bash
 B=localhost:8080/api/v1/items
 
-# 2xx
-curl -i -X POST $B -H "Content-Type: application/json" -d '{"name":"pen","price":1000}'   # 201
-curl -i $B/1                                                                            # 200
-curl -i "$B/search?keyword=pe"                                                          # 200
-curl -i -X POST $B/with-header -H "Content-Type: application/json" -H "USER-ID: dh" \
-     -H "Authorization: Bearer test" -d '{"name":"cup","price":500}'                     # 200
-curl -i -X PUT $B/1 -H "Content-Type: application/json" -d '{"name":"pencil"}'          # 200
-curl -i -X PUT $B/1/price -H "Content-Type: application/json" -d '{"price":2000}'       # 200
-curl -i -X DELETE $B/1                                                                  # 200
-curl -i -X DELETE $B                                                                    # 200
-
-# 4xx
-curl -i -X POST $B -H "Content-Type: application/json" -d '{"name":"","price":-1}'      # 400
-curl -i $B/abc                                                                          # 400
-curl -i $B/999                                                                          # 404
-
-# 5xx
-curl -i "$B/search?size=-1"                                                             # 500
-# app.maintenance=true 후 재시작
-curl -i $B                                                                              # 503
+# 01 POST 생성 → 201
+curl -i -X POST $B -H "Content-Type: application/json" -d '{"name":"pen","price":1000}'
+# 02 POST 헤더 포함 → 200
+curl -i -X POST $B/with-header -H "Content-Type: application/json" -H "USER-ID: dh" -H "Authorization: Bearer test" -d '{"name":"cup","price":500}'
+# 03 GET 전체 → 200
+curl -i $B
+# 04 GET 단건 → 200
+curl -i $B/1
+# 05 GET 검색 → 200
+curl -i "$B/search?keyword=pe"
+# 06 PUT 수정 → 200
+curl -i -X PUT $B/1 -H "Content-Type: application/json" -d '{"name":"pencil"}'
+# 07 PUT 가격 → 200
+curl -i -X PUT $B/1/price -H "Content-Type: application/json" -d '{"price":2000}'
+# 08 입력 검증 실패 → 400
+curl -i -X POST $B -H "Content-Type: application/json" -d '{"name":"","price":-1}'
+# 09 id 형식 오류 → 400
+curl -i $B/abc
+# 10 없는 id → 404
+curl -i $B/999
+# 11 처리되지 않은 예외 → 500
+curl -i "$B/search?size=-1"
+# 12 DELETE 단건 → 200
+curl -i -X DELETE $B/1
+# 13 DELETE 전체 → 200 (캡처 전에 아이템 하나 생성: 01번 명령어 한 번 더)
+curl -i -X DELETE $B
+# 14 점검 모드 → 503 (application.properties: app.maintenance=true 후 서버 재시작)
+curl -i $B
 ```
 
 ### 실행 화면
 
-| 항목 | 캡처 |
-|---|---|
-| 201 생성 | ![](docs/screenshots/01-post-201.png) |
-| 200 조회 | ![](docs/screenshots/02-get-200.png) |
-| PUT 2종 | ![](docs/screenshots/03-put-200.png) |
-| DELETE 2종 | ![](docs/screenshots/04-delete-200.png) |
-| 400 입력 검증 | ![](docs/screenshots/05-post-400.png) |
-| 404 없는 id | ![](docs/screenshots/06-get-404.png) |
-| 500 처리되지 않은 예외 | ![](docs/screenshots/07-search-500.png) |
-| 503 점검 모드 | ![](docs/screenshots/08-maintenance-503.png) |
-| 미들웨어 로그 | ![](docs/screenshots/09-interceptor-log.png) |
+#### 01. POST 생성 (201)
+![](docs/screenshots/01-post-create-201.png)
+#### 02. POST 헤더 포함 (200)
+![](docs/screenshots/02-post-with-header-200.png)
+#### 03. GET 전체 조회 (200)
+![](docs/screenshots/03-get-list-200.png)
+#### 04. GET 단건 조회 (200)
+![](docs/screenshots/04-get-one-200.png)
+#### 05. GET 검색 (200)
+![](docs/screenshots/05-get-search-200.png)
+#### 06. PUT 이름 수정 (200)
+![](docs/screenshots/06-put-update-200.png)
+#### 07. PUT 가격 수정 (200)
+![](docs/screenshots/07-put-price-200.png)
+#### 08. 입력 검증 실패 (400)
+![](docs/screenshots/08-post-invalid-400.png)
+#### 09. id 형식 오류 (400)
+![](docs/screenshots/09-get-type-mismatch-400.png)
+#### 10. 없는 id (404)
+![](docs/screenshots/10-get-not-found-404.png)
+#### 11. 처리되지 않은 예외 (500) — 응답에는 고정 메시지, 상세 내용은 서버 로그에만 기록
+![](docs/screenshots/11-search-error-500.png)
+#### 12. DELETE 단건 삭제 (200)
+![](docs/screenshots/12-delete-one-200.png)
+#### 13. DELETE 전체 삭제 (200)
+![](docs/screenshots/13-delete-all-200.png)
+#### 14. 점검 모드 (503)
+![](docs/screenshots/14-maintenance-503.png)
+#### 15. 미들웨어 요청 로그
+![](docs/screenshots/15-interceptor-log.png)
